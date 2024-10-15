@@ -85,7 +85,7 @@ class EnvRobosuite(EB.EnvBase):
                 for saving to a dataset (to save space on RGB images for example).
         """
         self.postprocess_visual_obs = postprocess_visual_obs
-
+        self.n_pcd = 2048  # number of points in the PCD
         # robosuite version check
         self._is_v1 = (robosuite.__version__.split(".")[0] == "1")
         if self._is_v1:
@@ -357,9 +357,11 @@ class EnvRobosuite(EB.EnvBase):
                 # create fake points
                 cropped_pcd.points = o3d.utility.Vector3dVector(np.array([[0., 0., 0.]]))
                 cropped_pcd.colors = o3d.utility.Vector3dVector(np.array([[0., 0., 0.]]))
-            if len(cropped_pcd.points) < 1024:
-                # random upsample to 1024
-                num_pad = 1024 - len(cropped_pcd.points)
+            if len(cropped_pcd.points) < self.n_pcd:
+                print('Warming: num points {} in obs is smaller than required {}, upsampling.'\
+                      .format(len(cropped_pcd.points), self.n_pcd))
+                # random upsample to self.n_pcd
+                num_pad = self.n_pcd - len(cropped_pcd.points)
                 indices = np.random.choice(len(cropped_pcd.points), num_pad)
                 padded_xyz = np.asarray(cropped_pcd.points)[indices]
                 padded_color = np.asarray(cropped_pcd.colors)[indices]
@@ -368,7 +370,7 @@ class EnvRobosuite(EB.EnvBase):
                 cropped_pcd = o3d.geometry.PointCloud()
                 cropped_pcd.points = o3d.utility.Vector3dVector(xyz)
                 cropped_pcd.colors = o3d.utility.Vector3dVector(color)
-            sampled_pcds = cropped_pcd.farthest_point_down_sample(1024)
+            sampled_pcds = cropped_pcd.farthest_point_down_sample(self.n_pcd)
             xyz = np.asarray(sampled_pcds.points)
             color = np.asarray(sampled_pcds.colors)
 
