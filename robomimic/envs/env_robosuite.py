@@ -85,7 +85,7 @@ class EnvRobosuite(EB.EnvBase):
                 for saving to a dataset (to save space on RGB images for example).
         """
         self.postprocess_visual_obs = postprocess_visual_obs
-        self.n_pcd = 2048  # number of points in the PCD
+        self.n_pcd = 1024  # number of points in the PCD
         # robosuite version check
         self._is_v1 = (robosuite.__version__.split(".")[0] == "1")
         if self._is_v1:
@@ -240,6 +240,24 @@ class EnvRobosuite(EB.EnvBase):
         else:
             raise NotImplementedError("mode={} is not implemented".format(mode))
 
+    def canonicalize(self, pcd):
+        """
+        rotate pcd so that table is level
+        """
+        pcd -= self.env.table_offset
+        pcd =  np.dot(self.env.table_offset_rotmat.T, pcd.T).T
+        pcd += self.env.table_offset
+        return pcd
+
+    def uncanonicalize(self, pcd):
+        """
+        rotate pcd to restore original orientation
+        """
+        pcd -= self.env.table_offset
+        pcd =  np.dot(self.env.table_offset_rotmat, pcd.T).T
+        pcd += self.env.table_offset
+        return pcd
+
     def get_observation(self, di=None):
         """
         Get current environment observation dictionary.
@@ -352,7 +370,13 @@ class EnvRobosuite(EB.EnvBase):
             ret['voxels'] = np_voxels
 
             bounding_box = o3d.geometry.AxisAlignedBoundingBox(self.pc_workspace.T[0], self.pc_workspace.T[1])
+            if hasattr(self, 'env.table_offset_rotmat'):
+                all_pcds.points = o3d.utility.Vector3dVector(self.canonicalize(np.asarray(all_pcds.points)))
             cropped_pcd = all_pcds.crop(bounding_box)
+            if hasattr(self, 'env.table_offset_rotmat'):
+                all_pcds.points = o3d.utility.Vector3dVector(self.uncanonicalize(np.asarray(all_pcds.points)))
+                cropped_pcd.points = o3d.utility.Vector3dVector(self.uncanonicalize(np.asarray(cropped_pcd.points)))
+
             if len(cropped_pcd.points) == 0:
                 # create fake points
                 cropped_pcd.points = o3d.utility.Vector3dVector(np.array([[0., 0., 0.]]))
@@ -380,7 +404,7 @@ class EnvRobosuite(EB.EnvBase):
             # ax = fig.add_subplot(111, projection='3d')
 
             # # Scatter plot
-            # ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c=color, s=20)
+            # ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c=color, s=2)
 
             # # Labels
             # ax.set_xlabel('X Label')
