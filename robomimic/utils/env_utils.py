@@ -191,7 +191,7 @@ def create_env_from_metadata(
     render=False, 
     render_offscreen=False, 
     use_image_obs=False, 
-    use_depth_obs=False, 
+    use_depth_obs=True,
 ):
     """
     Create environment.
@@ -249,7 +249,7 @@ def create_env_for_data_processing(
     render=None, 
     render_offscreen=None, 
     use_image_obs=None, 
-    use_depth_obs=None, 
+    use_depth_obs=True,
 ):
     """
     Creates environment for processing dataset observations and rewards.

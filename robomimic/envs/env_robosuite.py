@@ -13,7 +13,8 @@ from robosuite.utils.camera_utils import get_real_depth_map, get_camera_extrinsi
 import robosuite.utils.transform_utils as T
 try:
     # this is needed for ensuring robosuite can find the additional mimicgen environments (see https://mimicgen.github.io)
-    import mimicgen_envs
+    # import mimicgen_envs
+    import mimicgen
 except ImportError:
     pass
 
@@ -257,7 +258,7 @@ class EnvRobosuite(EB.EnvBase):
         rotate pcd so that table is level
         """
         pcd -= self.env.table_offset
-        pcd =  np.dot(self.env.table_offset_rotmat.T, pcd.T).T
+        pcd =  np.dot(self.env.get_table_offset_rotmat().T, pcd.T).T
         pcd += self.env.table_offset
         return pcd
 
@@ -266,7 +267,7 @@ class EnvRobosuite(EB.EnvBase):
         rotate pcd to restore original orientation
         """
         pcd -= self.env.table_offset
-        pcd =  np.dot(self.env.table_offset_rotmat, pcd.T).T
+        pcd =  np.dot(self.env.get_table_offset_rotmat(), pcd.T).T
         pcd += self.env.table_offset
         return pcd
 
@@ -387,12 +388,16 @@ class EnvRobosuite(EB.EnvBase):
             ret['voxels'] = np_voxels
 
             bounding_box = o3d.geometry.AxisAlignedBoundingBox(self.pc_workspace.T[0], self.pc_workspace.T[1])
-            if hasattr(self, 'env.table_offset_rotmat'):
+            try:
                 all_pcds.points = o3d.utility.Vector3dVector(self.canonicalize(np.asarray(all_pcds.points)))
+            except:
+                pass
             cropped_pcd = all_pcds.crop(bounding_box)
-            if hasattr(self, 'env.table_offset_rotmat'):
+            try:
                 all_pcds.points = o3d.utility.Vector3dVector(self.uncanonicalize(np.asarray(all_pcds.points)))
                 cropped_pcd.points = o3d.utility.Vector3dVector(self.uncanonicalize(np.asarray(cropped_pcd.points)))
+            except:
+                pass
 
             if len(cropped_pcd.points) == 0:
                 # create fake points
