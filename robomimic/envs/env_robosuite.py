@@ -391,24 +391,20 @@ class EnvRobosuite(EB.EnvBase):
                 ret['voxels'] = np_voxels
 
                 bounding_box = o3d.geometry.AxisAlignedBoundingBox(self.pc_workspace.T[0], self.pc_workspace.T[1])
-                try:
+                if hasattr(self.env, 'get_table_offset_rotmat'):
                     all_pcds.points = o3d.utility.Vector3dVector(self.canonicalize(np.asarray(all_pcds.points)))
-                except:
-                    pass
                 cropped_pcd = all_pcds.crop(bounding_box)
-                try:
+                if hasattr(self.env, 'get_table_offset_rotmat'):
                     all_pcds.points = o3d.utility.Vector3dVector(self.uncanonicalize(np.asarray(all_pcds.points)))
                     cropped_pcd.points = o3d.utility.Vector3dVector(self.uncanonicalize(np.asarray(cropped_pcd.points)))
-                except:
-                    pass
 
                 if len(cropped_pcd.points) == 0:
                     # create fake points
                     cropped_pcd.points = o3d.utility.Vector3dVector(np.array([[0., 0., 0.]]))
                     cropped_pcd.colors = o3d.utility.Vector3dVector(np.array([[0., 0., 0.]]))
                 if len(cropped_pcd.points) < self.n_pcd:
-                    print('Warming: num points {} in obs is smaller than required {}, upsampling.'\
-                          .format(len(cropped_pcd.points), self.n_pcd))
+                    # print('Warming: num points {} in obs is smaller than required {}, upsampling.'\
+                    #       .format(len(cropped_pcd.points), self.n_pcd))
                     # random upsample to self.n_pcd
                     num_pad = self.n_pcd - len(cropped_pcd.points)
                     indices = np.random.choice(len(cropped_pcd.points), num_pad)
